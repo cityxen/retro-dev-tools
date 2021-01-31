@@ -22,12 +22,11 @@ While it is true that tools exist already that accomplish certain tasks, not all
 * Raspberry Pi
 * MacOS
 
-These tools and scripts were developed using the  github.com/cityxen/APMs repo.
+## Notes:
 
 We've tried to include as many things as possible that you could need while also leaving out larger things to try and minimize the overhead.
 
-## Notes:
-So far the following compile and run in respective emulator by running one script.
+These tools and scripts were developed using the  github.com/cityxen/APMs repo. So far the following compile and run in respective emulator using the build scripts.
 
 |Character|Machine|Toolchain|Disk Manager|Emulator|
 |---|---|---|---|---|
