@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import os
+import os.path
+from os import path
 import argparse
 import platform
 from datetime import datetime 
