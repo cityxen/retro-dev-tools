@@ -1,3 +1,4 @@
 dev-tools/commodore64/KickAssembler/KickAss.cfg*
-
-
+emulators/WinVICE-3.0-x64/autostart-C64.d64
+*.log
+*.ini
