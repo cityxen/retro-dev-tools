@@ -139,8 +139,9 @@ print("\x1b[0;37;40m")
 
 #############################################################################################################
 ## Backup current KickAss.cfg
-copyfile(KICKASS_CONFIG,KICKASS_CONFIG+"."+str(timestamp)+".RTD_BACKUP")
-
+if(path.exists(KICKASS_CONFIG)):
+    copyfile(KICKASS_CONFIG,KICKASS_CONFIG+"."+str(timestamp)+".RTD_BACKUP")
+    
 #############################################################################################################
 ## Write new KickAss.cfg
 
