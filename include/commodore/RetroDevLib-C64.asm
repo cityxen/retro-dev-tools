@@ -4,5 +4,6 @@
 #import "PrintSubRoutines.asm"
 #import "Disk.asm"
 #import "Joysticks.asm"
+#import "IrqTimer.asm"
 // #import "Music.asm"
 // #import "SpriteManagement.asm"

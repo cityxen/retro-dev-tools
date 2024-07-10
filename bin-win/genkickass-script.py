@@ -46,7 +46,7 @@ C64_INCLUDE_PATH    = RETRO_DEV_PATH+os.path.sep+"include"+os.path.sep+"commodor
 
 VICE_PATH           = "/usr/bin"
 if OS_DETECTED=="WINDOWS":
-    VICE_PATH=RETRO_DEV_PATH+os.path.sep+"emulators"+os.path.sep+"WinVICE-3.0-x64"
+    VICE_PATH=RETRO_DEV_PATH+os.path.sep+"emulators"+os.path.sep+"vice"+os.path.sep+"bin"
     
 target              = "Default"
 emulator            = "Default"
@@ -85,7 +85,7 @@ if target=="Default":
 if target=="C64":
     if emulator=="Default":
         if OS_DETECTED=="WINDOWS":
-            emulator=VICE_PATH+os.path.sep+"x64.exe"
+            emulator=VICE_PATH+os.path.sep+"x64sc.exe"
         if OS_DETECTED=="LINUX":
             emulator=VICE_PATH+os.path.set+"x64"
 
@@ -142,7 +142,7 @@ print("\x1b[0;37;40m")
 #############################################################################################################
 ## Backup current KickAss.cfg
 if(path.exists(KICKASS_CONFIG)):
-    copyfile(KICKASS_CONFIG,KICKASS_CONFIG+"."+str(timestamp)+".RTD_BACKUP")
+    copyfile(KICKASS_CONFIG,KICKASS_CONFIG+".RTD_BACKUP")
 
 #############################################################################################################
 ## Write new KickAss.cfg

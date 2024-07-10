@@ -58,7 +58,7 @@
 /* TGI color defines */
 #define TGI_COLOR_BLACK         0x00
 #define TGI_COLOR_GREEN         0x01
-#define TGI_COLOR_VIOLET        0x02
+#define TGI_COLOR_PURPLE        0x02
 #define TGI_COLOR_WHITE         0x03
 #define TGI_COLOR_BLACK2        0x04
 #define TGI_COLOR_ORANGE        0x05
@@ -159,11 +159,11 @@ extern struct {
         unsigned day  :5;
         unsigned mon  :4;
         unsigned year :7;
-    }             createdate;    /* Current date: 0 */ 
+    }             createdate;    /* Current date: 0 */
     struct {
         unsigned char min;
         unsigned char hour;
-    }             createtime;    /* Current time: 0 */ 
+    }             createtime;    /* Current time: 0 */
 } _datetime;
 
 /* The addresses of the static drivers */

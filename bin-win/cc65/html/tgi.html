@@ -2,7 +2,7 @@
 <HTML>
 <HEAD>
  <LINK REL="stylesheet" TYPE="text/css" HREF="doc.css">
- <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.71">
+ <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.73">
  <TITLE>Tiny Graphics Interface</TITLE>
 </HEAD>
 <BODY>
@@ -987,7 +987,7 @@ tgi_init(); //Set up the default palette and clear the screen.
 <P><CODE>
 <A HREF="#tgi.h">tgi.h</A></CODE></P>
 <DT><B>Declaration</B><DD>
-<P><CODE>unsigned char __fastcall__ tgi_install (void* driver);</CODE></P>
+<P><CODE>unsigned char __fastcall__ tgi_install (const void* driver);</CODE></P>
 <DT><B>Description</B><DD>
 <P>The function installs a driver that was already loaded into
 memory (or linked statically to the program). It returns an error code

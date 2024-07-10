@@ -2,7 +2,7 @@
 <HTML>
 <HEAD>
  <LINK REL="stylesheet" TYPE="text/css" HREF="doc.css">
- <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.71">
+ <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.73">
  <TITLE>da65 Users Guide</TITLE>
 </HEAD>
 <BODY>
@@ -158,9 +158,9 @@ output file in form of comments.</P>
 <LI>4510</LI>
 </UL>
 </P>
-<P>6502x is for the NMOS 6502 with unofficial opcodes. 6502dtv is for the 
-emulated CPU of the C64DTV device. huc6280 is the CPU of the PC engine. 
-4510 is the CPU of the Commodore C65. Support for the 65816 currently 
+<P>6502x is for the NMOS 6502 with unofficial opcodes. 6502dtv is for the
+emulated CPU of the C64DTV device. huc6280 is the CPU of the PC engine.
+4510 is the CPU of the Commodore C65. Support for the 65816 currently
 is not available.</P>
 
 <P>
@@ -191,7 +191,7 @@ output.</P>
 <A NAME="option--info"></A> </P>
 <DT><B><CODE>-i name, --info name</CODE></B><DD>
 <P>Specify an info file. The info file contains global options that may
-override or replace command line options plus informations about the code
+override or replace command line options plus information about the code
 that has to be disassembled. See the separate section 
 <A HREF="#infofile">Info File Format</A>.</P>
 
@@ -288,8 +288,8 @@ for this CPU. Invalid opcodes are translated into <CODE>.byte</CODE> commands.</
 <A HREF="#option--cpu">--cpu</A></CODE>, the
 disassembler may be told to recognize either the 65SC02 or 65C02 CPUs. The
 latter understands the same opcodes as the former, plus 16 additional bit
-manipulation and bit test-and-branch commands. Using 6502x as CPU the illegal 
-opcodes of 6502 CPU are detected and displayed. 6502dtv setting recognizes the 
+manipulation and bit test-and-branch commands. Using 6502x as CPU the illegal
+opcodes of 6502 CPU are detected and displayed. 6502dtv setting recognizes the
 emulated CPU instructons of the C64DTV device.</P>
 
 <P>When disassembling 4510 code, due to handling of 16-bit wide branches, da65

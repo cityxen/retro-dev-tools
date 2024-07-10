@@ -1,5 +1,81 @@
 /*
+
+
+2.9.1.0 Added: Bookmarks now have their own indicator (a number with a box around it) and replace the ":" seperator. Updated Debug_Font.bmp
+
+.18 Fixed: Resetting bookmarks wasn't setting the total bookmarks back to zero.
+.17 Fixed: If all bookmarks were used then setting a new one wouldn't update an existing one to the new address.
+.16 Fixed: Replacing an existing bookmark incorrectly increased the total bookmark count.
+.15 Cleanup: HELP CALC examples and See also.
+.14 Fixed: HELP JSR wasn't color-coding syntax.
+.13 Added: PROFILE LIST now shows how many clock cycles were executed.
+.12 GH-PR#480:
+    GH#462: Default to Shift+Left Click to toggle disasm columns
+            Use 'disasm click <n>' to reconfigure this
+    GH#473: Fixed bug caused by Util_MemoryTextFile, Line 51 not zero-terminating buffer by invalidating it.
+    GH#476: Fixed off-by-one bug wrapping in debugger console
+    GH#483: Shift+Left mouse button to toggle 6502 Status flag bits
+    GH#484: Some corrections to APPLE2E.SYM
+.11 Added:"Warning" for long symbols when symbol table is loaded
+.10 Changed: "Warning" of symbols that alias to "Info."
+.9 Continuation of 2.8.0.8: Fix overflowing disassembly pane for long symbols
+.8 Fixed: Inactive Language Card bank now grayed out, main memory no longer double inverse.
+.7 Fixed: Memory softswitches are now in chronological order, and their background is a dark grey
+.6 Added: Read/Write for Main/Aux memory now shown
+.5 Added: Support for RAMWORKS in the Debugger Language Card Status
+.4 Added: Language Card Status now displayed
+.3 Cleanup drawing of soft switches
+.2 Fix crash when NTSC save/load total path length is > console width (80 chars)
+.1 Fixed: Implemented missing debugger "CD" command
+2.9.0.0 Added: ntsc save [filename], ntsc load [filename], to save/load the NTSC palette.
+  Default filename is "AppleWinNTSC4096x4@32.data"
+  To load this file in GIMP: Open, Select File Type: "Raw image data", Raw image data (*.data), RGB Alpha, Width: 4096, Height: 4
+  to save this file in GIMP: Open, Export To, Select File Type (By Extension) Raw image data, RGB Type: Standard (R,G,B)
+
+.12 Fixed: [PVS-Studio] Fixed false positive of buffer overflow with MIP_RANDOM
+.11 Fixed: [PVS-Studio] Fixed missing call to sprintf() in ConfigSave_PrepareHeader()
+.10 Fixed: [PVS-Studio] Fixed no-op in _6502_GetStackReturnAddress()
+ .9 Added: BLOAD now recognizes the extensions .hgr or .hgr2 to load to $2000, or $4000 respectfully
+ .8 Fixed: Showing/hiding the address and/or opcodes will show long symbolic targets without overflowing into the register info pane Bug #227
+ .7 Fixed: ASC #:# with string containing null byte wouldn't show rest of string
+ .6 Added: Print-Screen when in debugger will copy the debugger window as text
+ .5 Added: Print warnings about duplicate symbols when symbol tables are loaded
+ .4 Fixed: Check for buffer overflow in CmdSymbolsInfo() if _CmdSymbolsInfoHeader() returns a very long string
+ .3 Removed EXITBENCH from falsely being triggered with E.
+ .2 Cleaned up error message for syminfo on invalid symbol table.
+ .1 Fixed: Symbolic Targets > 20 chars no longer overflow into register window
+2.8.0.0 Released with AppleWin 1.25
+
 2.7.0.#
+.36 Fixed: empty command was re-triggering previous command. Example: DW 6062, // test
+.35 Added: DW address -- round the length up to even number for convenience. Example: DW 6062 is equivalent to: DW 6062:6063
+.34 Fixed: Unified auto-defined name: B_, W_, T_ for byte, word, or text respectively
+.33 Fixed: ASC range -- auto-define symbol name: T_####
+.32 Fixed: DW range -- auto-define symbol name: W_####
+.31 Fixed: DB range -- auto-define symbol name B_####
+.30 Fixed: ASC overflowing sOpCodes in FormatOpcodeBytes()
+.29 Added: Help for DB and DW
+.28 Added: ASC so it disassemblies intertwined code and data correctly.
+    Example:
+        using Castle Wolfenstien.DSK
+        BLOAD ^VOCAB
+        ASC name1 17DA:17F5
+.27 Added: DB address now auto-defines the symbol D_####
+.26 Changed: DS to ASC because DS is used as "Define Space" assembler directive
+.25 Fixed : DW address so that odd address work.
+    i.e. DW NEXT1 801   // AppleSoft Basic Line#1 Pointer to Next line
+.24 Added: TSAVE "filename" to save the text screen to file
+    Default filename for 40 columns is: AppleWin_Text40.txt
+    Default filename for 80 columns is: AppleWin_Text80.txt
+.23 Fixed: Hang with Memory Move when memory ends at FFFF, i.e. 2000<FFFE.FFFFM
+.22 Fixed: Hang with Memory Fill when memory ends at FFFF, i.e. F D000:FFFF 0
+.21 Added: Help for BRK
+.20 Moved: BRK and BRKOP now under HELP BREAKPOINTS
+.19 Added: Shift-F7 will run the emulator at normal speed but with debugger breakpoints active!
+.18 Added: Implemented BPIO -- currently is the same as BPM
+
+2.7.0.17 Released with Applewin 1.20.0.0
+
 .17 Fixed: HELP <category> wasn't displaying when category was one of: FLAGS, OUTPUT, WATCHES
 .16 Fixed: WL was displaying number of watches
 .15 Fixed: Memory Dump was over-writing watches.
@@ -294,7 +370,6 @@
 
 2.6.0.8 Released with AppleWin 1.16.1
 
->>>>>>> .r619
 2.6.0.6 Released with AppleWin 1.15
 .6 Added new command '@' to display the search results
 .5 Fixed display results of Searching to be colorized
