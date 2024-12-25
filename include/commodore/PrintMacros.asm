@@ -1,8 +1,15 @@
-//////////////////////////////////////////////////////////////////////////////////////
-// CityXen - https://linktr.ee/cityxen
-//////////////////////////////////////////////////////////////////////////////////////
-// Deadline's C64 Assembly Language Library: PrintMacros
-//////////////////////////////////////////////////////////////////////////////////////
+
+.macro PrintASCII2Petscii(string) {
+    ldx #$00
+!pstr:
+    lda string,x
+    beq !pstr+
+    jsr ascii_to_petscii_kp
+    jsr KERNAL_CHROUT
+    inx
+    jmp !pstr-
+!pstr:
+}
 
 .macro PrintString(string) {
     ldx #$00
@@ -14,7 +21,10 @@
     jmp !pstr-
 !pstr:
 }
-
+.macro PrintHOME() {
+    lda #KEY_HOME
+    jsr KERNAL_CHROUT
+}
 .macro PrintLF() {
     lda #13
     jsr KERNAL_CHROUT
@@ -26,87 +36,60 @@
 }
 
 
-.macro PrintAt(xpos,ypos,var_string) {
-    ldx #$00
-printatloop:
-    lda var_string,x
-    beq printexit
-    sta SCREEN_RAM + xpos + ypos*40,x
-    inx
-    jmp printatloop    
-printexit:
+.macro PrintStrAtColor(x,y,string,color) {
+    lda #$0
+    sta 780
+    lda x
+    sta 781
+    lda y
+    sta 782
+    jsr 65520
+    PrintColor(color)
+    PrintString(string)
 }
-.macro PrintAtColor(xpos,ypos,var_string,color) {
-    ldx #$00
-printatloop:
-    lda var_string,x
-    beq printexit
-    sta SCREEN_RAM + xpos + ypos*40,x
-    lda #color
-    sta COLOR_RAM + xpos + ypos*40,x
-    inx
-    jmp printatloop    
-printexit:
-}
-.macro PrintStrAtColor(xpos,ypos,var_in_string,color) {
-    jmp over_table
-var_string:
-    .text var_in_string; .byte 0
-over_table:
-    ldx #$00
-printatloop:
-    lda var_string,x
-    beq printexit
-    sta SCREEN_RAM + xpos + ypos*40,x
-    lda #color
-    sta COLOR_RAM + xpos + ypos*40,x
-    inx
-    jmp printatloop    
-printexit:
-}
-.macro PrintAtRainbow(xpos,ypos,var_string) {
-    ldy #$00
-    ldx #$00
-printatloop:
-    lda var_string,x
-    beq printexit
-    sta SCREEN_RAM + xpos + ypos*40,x
-    lda rainbowtable,y
-    sta COLOR_RAM + xpos + ypos*40,x
-    inx
-    iny
-    cpy #$06
-    bne jmprainbowtable
-    ldy #$00
-jmprainbowtable:
-    jmp printatloop    
-printexit:
-}
-rainbowtable:
-.byte YELLOW,GREEN,BLUE,PURPLE,RED,ORANGE
 
-.macro PrintDecAtColor(xpos,ypos,var_num_mem,color) {
-    ldx #$00
-// printatloop:
-    lda var_num_mem
-    adc #$2f
-//    beq printexit
-    sta SCREEN_RAM + xpos + ypos*40,x
+.macro zPrint(text) {
+    lda #> text
+    sta zp_tmp_hi 
+    lda #< text
+    sta zp_tmp_lo
+    jsr zprint
+}
+
+.macro PrintHex(xpos,ypos) {
+
+    sta a_reg
+    stx x_reg
+    sty y_reg
+
+    lda a_reg
+    ldx #xpos
+    ldy #ypos
+    jsr print_hex
+
+    ldx x_reg
+    ldy y_reg
+}
+
+.macro PrintHexC(xpos,ypos,color) {
+
+    sta a_reg
+    stx x_reg
+    sty y_reg
+
     lda #color
-    sta COLOR_RAM + xpos + ypos*40,x
-    //inx
-    // jmp printatloop    
-// printexit:
-}
-// ddl_print_num_table:
-// .byte $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,'a','b','c','d','e','f'
+    sta print_hex_color
 
+    lda a_reg
+    ldx #xpos
+    ldy #ypos
+    jsr print_hex
 
-.macro SetCursor(xpos,ypos) {
-    ldx xpos
-    stx CURSOR_X_POS
-    ldy ypos
-    sty CURSOR_Y_POS
-    // clc
-    jsr CURSOR_SET
+    ldx x_reg
+    ldy y_reg
 }
+
+.macro PrintHexI() {
+    jsr print_hex_inline
+}
+

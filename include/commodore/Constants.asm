@@ -17,40 +17,30 @@
 .const SCREEN_RAM           = $400
 .const COLOR_RAM            = $D800
 // Safe zero page locations $57-$70, $92-$96, $A3-$B1, $F7-$FE
-.const TEMP_1               = $FB
-.const TEMP_2               = $FC
-.const zp_tmp               = $FB
-.const zp_tmp_lo            = $FB
-.const zp_tmp_hi            = $FC
-.const zp_tmp2              = $FD
-.const zp_tmp2_lo           = $FD
-.const zp_tmp2_hi           = $FE
-.const TEMP_5               = $02
-.const TEMP_6               = $c003
-.const TEMP_7               = $04
-.const TEMP_8               = $05
-.const zp_ptr_screen        = $60
-.const zp_ptr_screen_lo     = $60
-.const zp_ptr_screen_hi     = $61
-.const zp_screen            = $60
-.const zp_screen_lo         = $60
-.const zp_screen_hi         = $61
-.const zp_color             = $62
-.const zp_color_lo          = $62
-.const zp_color_hi          = $63
-.const zp_ptr_color         = $62
-.const zp_ptr_color_lo      = $62
-.const zp_ptr_color_hi      = $63
+.const TEMP_1               = $57
+.const TEMP_2               = $58
+.const zp_tmp               = $02
+.const zp_tmp_lo            = $02
+.const zp_tmp_hi            = $03
+.const TEMP_5               = $04
+.const TEMP_6               = $05
+.const TEMP_7               = $06
+.const TEMP_8               = $07
+.const zp_ptr_screen        = $fb
+.const zp_ptr_screen_lo     = $fb
+.const zp_ptr_screen_hi     = $fc
+.const zp_ptr_color         = $fd
+.const zp_ptr_color_lo      = $fd
+.const zp_ptr_color_hi      = $fe
 .const zp_point_tmp         = $59
 .const zp_point_tmp_lo      = $59
 .const zp_point_tmp_hi      = $5a
 .const zp_ptr_2             = $64
 .const zp_ptr_2_lo          = $64
 .const zp_ptr_2_hi          = $65
-.const zp_tmp3              = $a3
-.const zp_tmp3_lo           = $a3
-.const zp_tmp3_hi           = $a4
-.const zp_tmp4              = $a5
+.const zp_temp              = $a3
+.const zp_temp2             = $a4
+.const zp_temp3             = $a5
 .const JOYPORT_TIMER        = $05
 //////////////////////////////////////////////////////////////////////////////////////
 // VARIOUS STUFF
@@ -296,3 +286,8 @@
 .const KEY_CURSOR_LEFT  = $9d
 .const KEY_CURSOR_RIGHT = $1d
 .const KEY_CLEAR        = $93
+
+
+
+.const J2_NONE = $7f
+.const JOY_NONE = $ff

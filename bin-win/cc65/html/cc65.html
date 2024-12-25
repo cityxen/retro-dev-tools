@@ -2,7 +2,8 @@
 <HTML>
 <HEAD>
  <LINK REL="stylesheet" TYPE="text/css" HREF="doc.css">
- <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.73">
+ <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.82">
+ <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
  <TITLE>cc65 Users Guide</TITLE>
 </HEAD>
 <BODY>
@@ -785,7 +786,7 @@ that changes a character's code number from/to 0x00.</P>
 <DT><B><CODE>return-type</CODE></B><DD>
 <P>Warn about no return statement in function returning non-void.</P>
 <DT><B><CODE>struct-param</CODE></B><DD>
-<P>Warn when passing structs by value.</P>
+<P>Warn when passing structs by value. (Disabled by default.)</P>
 <DT><B><CODE>unknown-pragma</CODE></B><DD>
 <P>Warn about #pragmas that aren't recognized by cc65.</P>
 <DT><B><CODE>unreachable-code</CODE></B><DD>
@@ -798,6 +799,8 @@ that changes a character's code number from/to 0x00.</P>
 <P>Warn about unused function parameters.</P>
 <DT><B><CODE>unused-var</CODE></B><DD>
 <P>Warn about unused variables.</P>
+<DT><B><CODE>const-overflow</CODE></B><DD>
+<P>Warn if numerical constant conversion implies overflow. (Disabled by default.)</P>
 </DL>
 </P>
 <P>The full list of available warning names can be retrieved by using the
@@ -853,11 +856,13 @@ and the one defined by the ISO standard:</P>
 <P>
 <UL>
 <LI>  The datatypes "float" and "double" are not available.
+Floating point constants may be used, though they will have to be
+converted and stored into integer values.
+Floating point arithmetic expressions are not supported.
 
 </LI>
-<LI>  C Functions may not return structs (or unions), and structs may not
-be passed as parameters by value. However, struct assignment *is*
-possible.
+<LI>  C Functions may pass and return structs (or unions) by value, but only
+of 1, 2 or 4 byte sizes.
 
 </LI>
 <LI>  Most of the C library is available with only the fastcall calling
@@ -886,12 +891,12 @@ mind, you should be able to write fairly portable code.</P>
 <P>This cc65 version has some extensions to the ISO C standard.</P>
 <P>
 <UL>
-<LI>  The compiler allows to insert assembler statements into the output
-file. The syntax is
+<LI>  The compiler allows to insert inline assembler code in the form of the
+<CODE>asm</CODE> expression into the output file. The syntax is
 
 <BLOCKQUOTE><CODE>
 <PRE>
-        asm [optional volatile] (&lt;string literal&gt;[, optional parameters]) ;
+        asm [optional volatile] (&lt;string literal&gt;[, optional parameters])
         
 </PRE>
 </CODE></BLOCKQUOTE>
@@ -899,7 +904,7 @@ file. The syntax is
 or
 <BLOCKQUOTE><CODE>
 <PRE>
-        __asm__ [optional volatile] (&lt;string literal&gt;[, optional parameters]) ;
+        __asm__ [optional volatile] (&lt;string literal&gt;[, optional parameters])
         
 </PRE>
 </CODE></BLOCKQUOTE>
@@ -908,7 +913,7 @@ or
 The first form is in the user namespace; and, is disabled if the <CODE>-A</CODE>
 switch is given.
 
-There is a whole section covering inline assembler statements,
+There is a whole section covering the inline assembler,
 <A HREF="#inline-asm">see there</A>.
 
 <P>
@@ -1121,6 +1126,14 @@ can be used.
 
 <CODE>_Static_assert</CODE> is also available as the macro <CODE>static_assert</CODE> in
 <CODE>assert.h</CODE>.
+
+Note: The string literal as the message in the <CODE>_Static_assert</CODE>
+declaration is not subject to string literal translation (see
+<CODE>
+<A HREF="#pragma-charmap">#pragma&nbsp;charmap()</A></CODE>) and will
+always be in the host encoding. On the other hand, any character or
+string literals present in the condition expression of the
+<CODE>_Static_assert</CODE> declaration will be translated as usual.
 </LI>
 <LI>  cc65 supports bit-fields of any integral type that is int-sized or
 smaller, and enumerated types with those types as their underlying
@@ -1296,14 +1309,26 @@ translation unit in the form "Mmm dd yyyy".</P>
 <DT><B><CODE>__PLUS4__</CODE></B><DD>
 <P>This macro is defined if the target is the Commodore Plus/4 (-t plus4).</P>
 
-<DT><B><CODE>__STDC_HOSTED__</CODE></B><DD>
-<P>This macro is expands to the integer constant 1.</P>
-
 <DT><B><CODE>__SIM6502__</CODE></B><DD>
 <P>This macro is defined if the target is sim65 in 6502 mode (-t sim6502).</P>
 
 <DT><B><CODE>__SIM65C02__</CODE></B><DD>
 <P>This macro is defined if the target is sim65 in 65C02 mode (-t sim65c02).</P>
+
+<DT><B><CODE>__STDC_HOSTED__</CODE></B><DD>
+<P>This macro expands to the integer constant 1.</P>
+
+<DT><B><CODE>__STDC_NO_ATOMICS__</CODE></B><DD>
+<P>This macro expands to the integer constant 1 if the language standard is cc65 (--standard cc65).</P>
+
+<DT><B><CODE>__STDC_NO_COMPLEX__</CODE></B><DD>
+<P>This macro expands to the integer constant 1 if the language standard is cc65 (--standard cc65).</P>
+
+<DT><B><CODE>__STDC_NO_THREADS__</CODE></B><DD>
+<P>This macro expands to the integer constant 1 if the language standard is cc65 (--standard cc65).</P>
+
+<DT><B><CODE>__STDC_NO_VLA__</CODE></B><DD>
+<P>This macro expands to the integer constant 1 if the language standard is cc65 (--standard cc65).</P>
 
 <DT><B><CODE>__SUPERVISION__</CODE></B><DD>
 <P>This macro is defined if the target is the Supervision (-t supervision).</P>
@@ -1391,7 +1416,9 @@ value zero.</P>
 </H2>
 
 
-<P>Each literal string and each literal character in the source is translated
+<P>Each literal string and each literal character in the preprocessed source,
+except when used in an <CODE>asm</CODE> expression as the inline assembler code or
+in a <CODE>_Static_assert</CODE> declaration as the failure message, is translated
 by use of a translation table. That translation table is preset when the
 compiler is started, depending on the target system; for example, to map
 ISO-8859-1 characters into PETSCII if the target is a Commodore machine.</P>
@@ -1711,12 +1738,12 @@ changing it.</P>
 
 
 <P>This pragma sets a wrapper for functions, often used for trampolines.</P>
-<P>The name is a function returning <CODE>void</CODE>, and taking no parameters.
+<P>The <CODE>name</CODE> is a wrapper function returning <CODE>void</CODE>, and taking no parameters.
 It must preserve the CPU's <CODE>A</CODE> and <CODE>X</CODE> registers if it wraps any
 <CODE>__fastcall__</CODE> functions that have parameters.  It must preserve
 the <CODE>Y</CODE> register if it wraps any variadic functions (they have "<CODE>...</CODE>"
 in their prototypes).</P>
-<P>The identifier is an 8-bit number that's set into <CODE>tmp4</CODE>. If the identifier
+<P>The <CODE>identifier</CODE> is an 8-bit number that's set into <CODE>tmp4</CODE>. If the <CODE>identifier</CODE>
 is "bank", then ca65's <CODE>
 <A HREF="ca65.html#.BANK">.bank</A></CODE> function will be used
 to determine the number from the bank attribute defined in the linker config,
@@ -1726,6 +1753,10 @@ this currently implies that only the least significant 8 bits of the bank attrib
 can be used.</P>
 <P>The address of a wrapped function is passed in <CODE>ptr4</CODE>.  The wrapper can
 call that function by using "<CODE>jsr callptr4</CODE>".</P>
+<P>All functions ever declared or defined when this pragma is in effect will be wrapped
+when they are called explicitly by their names later in the same translation unit.
+Invocation of these functions in any other ways, for example, that via a function
+pointer or in inline assembly code, will not be wrapped.</P>
 <P>This feature is useful, for example, with banked memory, to switch banks
 automatically to where a wrapped function resides, and then to restore the
 previous bank when it returns.</P>
@@ -1824,27 +1855,27 @@ bloated code and a slowdown.</P>
 <H2><A NAME="inline-asm"></A> <A NAME="s9">9.</A> <A HREF="#toc9">Inline assembler</A></H2>
 
 
-<P>The compiler allows to insert assembler statements into the output file. The
-syntax is</P>
+<P>The compiler allows to insert inline assembler code in the form of the <CODE>asm</CODE>
+expression into the output file. The syntax is</P>
 <P>
 <BLOCKQUOTE><CODE>
 <PRE>
-        asm [optional volatile] (&lt;string literal&gt;[, optional parameters]) ;
+        asm [optional volatile] (&lt;string literal&gt;[, optional parameters])
 </PRE>
 </CODE></BLOCKQUOTE>
 
 or
 <BLOCKQUOTE><CODE>
 <PRE>
-        __asm__ [optional volatile] (&lt;string literal&gt;[, optional parameters]) ;
+        __asm__ [optional volatile] (&lt;string literal&gt;[, optional parameters])
 </PRE>
 </CODE></BLOCKQUOTE>
 </P>
 
 <P>The first form is in the user namespace; and, is disabled by <CODE>
 <A HREF="#option--standard">--standard</A></CODE> if the argument is not <CODE>cc65</CODE>.</P>
-<P>The <CODE>asm</CODE> statement can be used only inside a function.  Please note that
-the result of an inline assembler expression is always of type <CODE>void</CODE>.</P>
+<P>The <CODE>asm</CODE> expression can be used only inside a function.  The result of an
+<CODE>asm</CODE> expression is always of type <CODE>void</CODE>.</P>
 <P>The contents of the string literal are preparsed by the compiler; and, inserted
 into the generated assembly output, so that it can be processed further by
 the backend -- and, especially the optimizer. For that reason, the compiler does
@@ -1853,19 +1884,26 @@ instructions (like <CODE>.import</CODE>, <CODE>.byte</CODE>, and so on) are <EM>
 even if the ca65 assembler (which is used to translate the generated assembler
 code) would accept them. The built-in inline assembler is not a replacement for
 the full-blown macro assembler which comes with the compiler.</P>
-<P>Note: Inline assembler statements are subject to all optimizations done by the
-compiler. There currently is no way to protect an inline assembler statement
+<P>Note: Inline assembler expressions are subject to all optimizations done by the
+compiler. There currently is no way to protect an inline assembler expression
 -- alone -- from being moved or removed completely by the optimizer. If in
 doubt, check the generated assembler output; or, disable optimizations (for
 that function).</P>
 <P>As a shortcut, you can put the <CODE>volatile</CODE> qualifier in your <CODE>asm</CODE>
-statements.  It will disable optimization for the functions in which those
-<CODE>asm volatile</CODE> statements sit.  The effect is the same as though you put
+expressions.  It will disable optimization for the functions in which those
+<CODE>asm volatile</CODE> expressions sit.  The effect is the same as though you put
 <CODE>#pragma optimize(push, off)</CODE> above those functions, and <CODE>#pragma
 optimize(pop)</CODE> below those functions.</P>
 <P>The string literal may contain format specifiers from the following list. For
 each format specifier, an argument is expected which is inserted instead of
 the format specifier, before passing the assembly code line to the backend.</P>
+<P>Note: The string literal as the inline assembler code itself in the <CODE>asm</CODE>
+expression is not subject to string literal translation (see
+<CODE>
+<A HREF="#pragma-charmap">#pragma&nbsp;charmap()</A></CODE>) and will always
+be in the host encoding. On the other hand, all character and string literals
+as the arguments for replacing the format specifiers will be translated as
+usual.</P>
 <P>
 <UL>
 <LI><CODE>%b</CODE> - Numerical 8-bit value</LI>
@@ -1963,7 +2001,7 @@ and assembler; and, how to handle assembler jumps:</P>
 </P>
 
 <P>Note: Do not embed the assembler labels that are used as names of global
-variables or functions into your <CODE>asm</CODE> statements. Code such as this:</P>
+variables or functions into your <CODE>asm</CODE> expressions. Code such as this:</P>
 <P>
 <BLOCKQUOTE><CODE>
 <PRE>

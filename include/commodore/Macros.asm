@@ -150,3 +150,30 @@ color_lbl:
     jmp sbr
 !check_joy:
 }
+
+
+.macro CityXenUpstart(start) {
+    
+.segment BASIC [allowOverlap]
+* = $0801 "BASIC Upstart"
+.word usend // link address
+.word 2024  // line num
+.byte $9e   // sys
+.text toIntString(start)
+.text ":"
+.byte $80 // end
+.text ":"
+.byte KEY_DELETE,KEY_DELETE,KEY_DELETE,KEY_DELETE,KEY_DELETE,KEY_DELETE,KEY_DELETE
+.byte KEY_DELETE,KEY_DELETE,KEY_DELETE,KEY_DELETE,KEY_DELETE,KEY_DELETE
+.text " -=*(CITYXEN)*=-"
+usend:
+.byte 0
+.word 0  // empty link signals the end of the program
+// THIS CODE IS FROM $0801 - $082C
+// The * directive below puts the code to $0830
+// well clear of any allowOverlap
+// If you modify this to change the BASIC Upstart
+// and add more characters keep this in mind
+* = $0830 "vars and lib init"
+
+}
