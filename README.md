@@ -18,7 +18,7 @@ Build helper scripts for Windows.
 | `KickAss.bat` | Wrapper that invokes KickAssembler (`KickAss.jar`) with a generated config file |
 | `genkickass-script.bat` | Calls `genkickass-script.py` — pass arguments through |
 | `genkickass-script.py` | Generates a `KickAss_AutoGen.cfg` for a target machine and emulator |
-| `kickit.py` | Converts assembler byte-data formats (ACME, DASM, Merlin, raw binary, etc.) to KickAssembler `.byte` syntax |
+| `kickit.py` | Converts ACME, DASM, Merlin, raw binary, etc. source code files to KickAssembler source code |
 | `kick2xex.py` | Wraps a KickAssembler PRG output as an Atari XEX (strips 2-byte load header, adds `$FFFF` magic and run-address segment at `$02E0`) |
 | `kick2apple.py` | Strips KickAssembler PRG header to raw `.bin`; generates a tokenized Applesoft BASIC STARTUP that BRUNs the binary |
 | `c64sprites2apple.py` | Converts C64 sprite data (binary or KickAssembler text) to Apple IIe HGR KickAssembler `.byte` data |
