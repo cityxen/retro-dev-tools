@@ -67,7 +67,7 @@ Reusable assembly include libraries, organized by platform. Each platform folder
 
 ## Dependencies
 
-The following are required but **not included in this repo** (gitignored). You must install these separately:
+The following are required but **not included in this repo**. You must install these separately:
 
 - **KickAssembler** (`dev-tools/commodore64/KickAssembler/KickAss.jar`) - required
 - **Emulators**
