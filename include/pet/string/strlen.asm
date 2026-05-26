@@ -1,0 +1,20 @@
+//////////////////////////////////////////////////////////////////////////////////////
+// CityXen - https://linktr.ee/cityxen
+//////////////////////////////////////////////////////////////////////////////////////
+// Deadline's Commodore PET Assembly Language Library:
+// String Length
+// Target: Commodore PET 4032 (BASIC 4.0, MOS 6502)
+//////////////////////////////////////////////////////////////////////////////////////
+
+str_len: .byte 0
+
+// StrLen(instring) — sets str_len = length of null-terminated string
+.macro StrLen(instring) {
+    ldx #$ff
+    stx str_len
+sl_loop:
+    inx
+    lda instring, x
+    bne sl_loop
+    stx str_len
+}

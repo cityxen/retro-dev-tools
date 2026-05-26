@@ -1,0 +1,42 @@
+﻿<!DOCTYPE html>
+<html>
+<head><title>Apple IIe Programming Reference - CityXen</title></head>
+<body>
+<h1>Apple IIe / 65C02 Quick Reference</h1>
+<h2>Key Memory Locations</h2>
+<ul>
+  <li>$0400-$07FF - Text Page 1 (40x24)</li>
+  <li>$0800-$0BFF - Text Page 2</li>
+  <li>$2000-$3FFF - Hi-Res Page 1 (280x192)</li>
+  <li>$4000-$5FFF - Hi-Res Page 2</li>
+  <li>$C000 - Keyboard (KBD)</li>
+  <li>$C010 - Keyboard strobe clear</li>
+  <li>$C030 - Speaker toggle</li>
+  <li>$C050-$C057 - Display mode soft switches</li>
+  <li>$C061-$C063 - Pushbuttons (Open Apple, Closed Apple)</li>
+  <li>$C064-$C067 - Paddle inputs</li>
+  <li>$C070 - Paddle trigger</li>
+  <li>$BF00 - ProDOS MLI entry</li>
+</ul>
+<h2>Monitor ROM Routines</h2>
+<ul>
+  <li>$FC58 HOME - Clear screen, home cursor</li>
+  <li>$FC22 VTAB - Set cursor row</li>
+  <li>$FBC1 BASCALC - Calculate row base address</li>
+  <li>$FD0C RDKEY - Read keypress (waits)</li>
+  <li>$FDED COUT - Print character</li>
+  <li>$FD8E CROUT - Print carriage return</li>
+  <li>$FDDA PRBYTE - Print hex byte</li>
+  <li>$FCA8 WAIT - Delay</li>
+</ul>
+<h2>65C02 Extra Opcodes vs 6502</h2>
+<ul>
+  <li>STZ - Store zero to memory</li>
+  <li>PHX/PHY - Push X/Y to stack</li>
+  <li>PLX/PLY - Pull X/Y from stack</li>
+  <li>BRA - Branch always (relative)</li>
+  <li>TRB/TSB - Test and reset/set bits</li>
+  <li>(zp) - Zero-page indirect addressing</li>
+</ul>
+</body>
+</html>

@@ -1,4 +1,0 @@
-dir=$(dirname $0)
-wine $dir/mads.exe $1 $2
-
-

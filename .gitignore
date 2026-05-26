@@ -3,3 +3,5 @@ emulators/WinVICE-3.0-x64/autostart-C64.d64
 *.log
 *.ini
 *-DEV
+.claude
+workfolder

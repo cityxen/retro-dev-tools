@@ -1,3 +1,0 @@
-dir=$(dirname $0)
-wine $dir/../emulators/AppleWin/Applewin.exe -d1 $1
-
