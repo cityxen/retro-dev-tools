@@ -22,6 +22,7 @@ Build helper scripts for Windows.
 | `kick2xex.py` | Wraps a KickAssembler PRG output as an Atari XEX (strips 2-byte load header, adds `$FFFF` magic and run-address segment at `$02E0`) |
 | `kick2apple.py` | Strips KickAssembler PRG header to raw `.bin`; generates a tokenized Applesoft BASIC STARTUP that BRUNs the binary |
 | `c64sprites2apple.py` | Converts C64 sprite data (binary or KickAssembler text) to Apple IIe HGR KickAssembler `.byte` data |
+| `diskimage.py` | Create and manage retro 8-bit disk images: D64 (Commodore), ATR (Atari DOS 2), DSK (Apple DOS 3.3) |
 
 #### genkickass-script.py targets
 
@@ -59,6 +60,31 @@ python kick2apple.py prg_files\game.prg prg_files\game.bin
 python kick2apple.py prg_files\game.prg prg_files\game.bin --brun GAME
 python kick2apple.py prg_files\game.prg prg_files\game.bin --no-startup
 ```
+
+#### diskimage.py usage
+
+Creates and manages disk images for retro 8-bit platforms. Format is auto-detected from the file extension (`.d64`, `.atr`, `.dsk`).
+
+```
+python diskimage.py create output.d64 [--name "DISK NAME"]
+python diskimage.py create output.atr
+python diskimage.py create output.dsk [--name "DISK NAME"]
+
+python diskimage.py add    image.d64 game.prg [--name GAME] [--type prg|seq|usr]
+python diskimage.py add    image.atr game.xex [--name GAME.XEX]
+python diskimage.py add    image.dsk game.bin [--name GAME] [--type bin|a|t]
+
+python diskimage.py list   image.d64
+python diskimage.py remove image.d64 GAME
+```
+
+| Format | Platforms | Notes |
+|---|---|---|
+| `.d64` | C64, C128, C16, PET, VIC-20 | 1541 single-sided, 35 tracks, 683 blocks |
+| `.atr` | Atari 8-bit | Atari DOS 2, single density, 720 sectors |
+| `.dsk` | Apple IIe | Apple DOS 3.3, 35 tracks × 16 sectors |
+
+---
 
 #### c64sprites2apple.py usage
 
