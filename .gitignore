@@ -5,3 +5,8 @@ emulators/WinVICE-3.0-x64/autostart-C64.d64
 *-DEV
 .claude
 workfolder
+emulators
+dox
+bin-win
+dev-tools
+disk-image-tools
