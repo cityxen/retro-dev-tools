@@ -35,7 +35,7 @@ python genkickass-script.py -t C128 -e "C:\path\to\x128.exe"
 
 #### kickit.py usage
 
-Converts any common byte-data format to KickAssembler syntax.
+Converts ACME, DASM, Merlin, raw binary, etc. source code files to KickAssembler source code syntax.
 
 ```
 python kickit.py input.asm
@@ -190,6 +190,8 @@ git clone https://github.com/cityxen/retro-dev-tools
 ```
 
 Reference the `include/` folder for your target platform in your assembler config or build script.
+
+Add `cityxen-tools/` to your system environment path.
 
 ---
 
