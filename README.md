@@ -35,7 +35,7 @@ python genkickass-script.py -t C128 -e "C:\path\to\x128.exe"
 
 #### kickit.py usage
 
-Converts ACME, DASM, Merlin, raw binary, etc. source code files to KickAssembler source code syntax.
+Converts ACME, DASM, Merlin, etc. source code files to KickAssembler source code syntax. This will also convert binary data, and assembled prgs to bytes in KickAssembler format.
 
 ```
 python kickit.py input.asm
