@@ -22,7 +22,7 @@ Build helper scripts for Windows.
 | `kick2xex.py` | Wraps a KickAssembler PRG output as an Atari XEX (strips 2-byte load header, adds `$FFFF` magic and run-address segment at `$02E0`) |
 | `kick2apple.py` | Strips KickAssembler PRG header to raw `.bin`; generates a tokenized Applesoft BASIC STARTUP that BRUNs the binary |
 | `c64sprites2apple.py` | Converts C64 sprite data (binary or KickAssembler text) to Apple IIe HGR KickAssembler `.byte` data |
-| `diskimage.py` | Create and manage retro 8-bit disk images: D64 (Commodore), ATR (Atari DOS 2), DSK (Apple DOS 3.3) |
+| `diskimage.py` | Create and manage retro disk images across multiple platforms — routes to per-platform sub-modules |
 
 #### genkickass-script.py targets
 
@@ -63,26 +63,66 @@ python kick2apple.py prg_files\game.prg prg_files\game.bin --no-startup
 
 #### diskimage.py usage
 
-Creates and manages disk images for retro 8-bit platforms. Format is auto-detected from the file extension (`.d64`, `.atr`, `.dsk`).
+Creates and manages disk images for retro platforms. The platform sub-module and disk format are both auto-detected from the file extension. Use `--format` to override when the extension is ambiguous or you need a specific format.
 
 ```
-python diskimage.py create output.d64 [--name "DISK NAME"]
-python diskimage.py create output.atr
-python diskimage.py create output.dsk [--name "DISK NAME"]
-
-python diskimage.py add    image.d64 game.prg [--name GAME] [--type prg|seq|usr]
-python diskimage.py add    image.atr game.xex [--name GAME.XEX]
-python diskimage.py add    image.dsk game.bin [--name GAME] [--type bin|a|t]
-
 python diskimage.py list   image.d64
-python diskimage.py remove image.d64 GAME
+python diskimage.py list   image.atr
+python diskimage.py list   image.dsk          # auto-detects DOS 3.3 or ProDOS
+
+python diskimage.py create output.d64         [--name "DISK NAME"]
+python diskimage.py create output.po          [--name VOLNAME]
+python diskimage.py create output.atr
+
+python diskimage.py add    image.d64  game.prg  [--name GAME] [--type prg|seq|usr]
+python diskimage.py add    image.atr  game.xex  [--name GAME.XEX]
+python diskimage.py add    image.po   game.bin  [--name GAME]  [--type bin|sys|bas|txt]
+
+python diskimage.py remove image.d64  GAME
+python diskimage.py remove image.po   PRODOS
+
+# Override platform or format explicitly
+python diskimage.py --format appleii  list   ambiguous.img
+python diskimage.py --format po       list   prodos.dsk
+python diskimage.py --format commodore list  somefile.img
 ```
 
-| Format | Platforms | Notes |
+#### Platform sub-modules and format auto-detection
+
+The `--format` flag accepts either a **platform name** (routes all formats for that platform) or a **format key** (selects exactly one format).
+
+| Platform | Module | Extensions handled |
 |---|---|---|
-| `.d64` | C64, C128, C16, PET, VIC-20 | 1541 single-sided, 35 tracks, 683 blocks |
-| `.atr` | Atari 8-bit | Atari DOS 2, single density, 720 sectors |
-| `.dsk` | Apple IIe | Apple DOS 3.3, 35 tracks × 16 sectors |
+| Commodore | `diskimage-commodore.py` | `.d64` `.d71` `.d81` `.t64` `.g64` `.p00` and more |
+| Atari 8-bit | `diskimage-atari.py` | `.atr` `.xfd` `.atx` `.st` `.msa` and more |
+| Apple II | `diskimage-appleii.py` | `.dsk` `.do` `.po` `.hdv` `.nib` `.2mg` `.woz` and more |
+| Amiga | `diskimage-amiga.py` | `.adf` `.dms` `.hdf` `.ipf` and more |
+| Mac | `diskimage-mac.py` | `.dc42` `.toast` `.image` and more |
+| DOS/PC | `diskimage-dos.py` | `.ima` `.img` `.td0` `.imd` and more |
+| Console | `diskimage-console.py` | `.fds` `.iso` `.gdi` `.chd` and more |
+
+#### Apple II formats
+
+Apple II disk images use several format conventions. `diskimage.py` auto-detects the filesystem from the file content, not just the extension — in particular, `.dsk` files are sniffed to tell apart DOS 3.3, ProDOS block-ordered, and DOS-sector-ordered ProDOS images.
+
+| Format key | Extension(s) | Description |
+|---|---|---|
+| `dsk` | `.dsk` | Apple DOS 3.3 (35 tracks × 16 sectors, 143360 bytes) |
+| `do` | `.do` | DOS-order image — same layout as `dsk` |
+| `po` | `.po` | ProDOS block-ordered (143360 bytes or larger) |
+| `do-po` | *(auto)* | DOS-sector-ordered image containing a ProDOS filesystem — auto-detected from `.dsk`/`.do` files; read/write remaps sectors transparently |
+| `hdv` | `.hdv` | Apple IIgs ProDOS hard disk volume (ProDOS block-ordered, up to ~32 MB) |
+| `nib` | `.nib` | Nibblized GCR image (232960 bytes, read-only listing) |
+| `2mg` | `.2mg` `.2img` | Universal Apple II container — wraps DOS 3.3, ProDOS, or NIB inner image |
+| `woz` | `.woz` | WOZ flux image (stub — listing not yet implemented) |
+
+**Format auto-detection for `.dsk` / `.do` files:**
+
+1. Check for a ProDOS volume header after remapping sectors using the DOS→ProDOS interleave table → detected as `do-po`
+2. Check for a ProDOS volume header at ProDOS block offsets → detected as `po`
+3. Check for a valid DOS 3.3 VTOC (track 17, sector 0) → detected as `dsk`
+
+This means `ip65.dsk`, `prodos.dsk`, and genuine `dos33.dsk` are all handled correctly without any `--format` flag.
 
 ---
 
