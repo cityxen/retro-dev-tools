@@ -35,13 +35,23 @@ python genkickass-script.py -t C128 -e "C:\path\to\x128.exe"
 
 #### kickit.py usage
 
-Converts ACME, DASM, Merlin, etc. source code files to KickAssembler source code syntax. This will also convert binary data, and assembled prgs to bytes in KickAssembler format.
+Converts ACME, DASM, Merlin, Prog8, raw binary, etc. to KickAssembler `.byte` syntax.
 
 ```
 python kickit.py input.asm
-python kickit.py chars.bin -o chars.asm -l charset
-python kickit.py game.prg --skip 2 -l prg_data
+python kickit.py chars.bin   -o chars.asm  -l charset
+python kickit.py game.prg    --skip 2      -l prg_data
+python kickit.py sprites.p8  -o sprites.asm
 ```
+
+| Input | Detected by | Extracted as |
+|---|---|---|
+| KickAssembler / CA65 | `.byte` keyword | as-is |
+| ACME / 64tass | `!byte` keyword | `.byte` |
+| DASM | `dc.b` keyword | `.byte` |
+| Merlin | `dfb` keyword | `.byte` |
+| Raw binary | `.bin` `.raw` `.prg` ext | `.byte` |
+| **Prog8** | `.p8` ext | `ubyte[]`/`uword[]` → `.byte`/`.word`; `const ubyte/uword` → `.const`; literal `.byte`/`.char` inside `%asm` blocks |
 
 #### kick2xex.py usage
 

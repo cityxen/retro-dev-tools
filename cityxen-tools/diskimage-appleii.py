@@ -72,12 +72,11 @@ class DSKImage:
         vtoc[0x02] = _DSK_DIR_FIRST_S
         vtoc[0x03] = 3
         vtoc[0x06] = volume
-        vtoc[0x27] = _DSK_SECTORS
-        vtoc[0x34] = 1
-        vtoc[0x36] = _DSK_TRACKS
-        vtoc[0x37] = _DSK_SECTORS
-        vtoc[0x38] = _DSK_SEC_SIZE & 0xFF
-        vtoc[0x39] = (_DSK_SEC_SIZE >> 8) & 0xFF
+        vtoc[0x27] = 122                             # max T/S pairs per sector
+        vtoc[0x34] = _DSK_TRACKS                     # tracks per disk (35)
+        vtoc[0x35] = _DSK_SECTORS                    # sectors per track (16)
+        vtoc[0x36] = _DSK_SEC_SIZE & 0xFF            # bytes per sector lo
+        vtoc[0x37] = (_DSK_SEC_SIZE >> 8) & 0xFF     # bytes per sector hi
         for t in range(_DSK_TRACKS):
             free_bits = 0xFFFF
             if t == _DSK_DIR_TRACK:
@@ -115,10 +114,12 @@ class DSKImage:
         self._write_sec(_DSK_VTOC_TRACK, _DSK_VTOC_SEC, vtoc)
 
     def _find_free_sector(self) -> tuple:
+        # Match AppleCommander: lowest track first (skip catalog track 17),
+        # sectors ascending 0->15 within each track.
         for t in range(1, _DSK_TRACKS):
             if t == _DSK_DIR_TRACK:
                 continue
-            for s in range(_DSK_SECTORS - 1, -1, -1):
+            for s in range(_DSK_SECTORS):
                 if self._vtoc_is_free(t, s):
                     return t, s
         raise RuntimeError('Disk full.')
@@ -156,9 +157,23 @@ class DSKImage:
             files.append((tname + locked, name, sectors))
         return files
 
-    def add_file(self, file_data: bytes, apple_name: str, file_type: str = 'bin') -> None:
+    def add_file(self, file_data: bytes, apple_name: str, file_type: str = 'bin', addr: int = 0) -> None:
         type_codes = {'t': 0x00, 'i': 0x01, 'a': 0x02, 'b': 0x04, 's': 0x08, 'bin': 0x04}
         ftype_byte = type_codes.get(file_type.lower(), 0x04)
+        # Prepend the type-specific on-disk header, matching AppleCommander:
+        if ftype_byte == 0x04:
+            # Binary (B): 4-byte [load_addr_lo, load_addr_hi, len_lo, len_hi]
+            hdr = bytes([addr & 0xFF, (addr >> 8) & 0xFF,
+                         len(file_data) & 0xFF, (len(file_data) >> 8) & 0xFF])
+            file_data = hdr + file_data
+        elif ftype_byte in (0x01, 0x02):
+            # Integer (I) / Applesoft (A): 2-byte little-endian length header
+            hdr = bytes([len(file_data) & 0xFF, (len(file_data) >> 8) & 0xFF])
+            file_data = hdr + file_data
+        elif ftype_byte == 0x00:
+            # Text (T): set the high bit on every byte (ASCII -> Apple II text)
+            file_data = bytes((b | 0x80) for b in file_data)
+        # Sequential (S, 0x08) and anything else: stored raw, no header
         dir_t = dir_s = dir_off = None
         for dt, ds, doff, entry in self._iter_dir_entries():
             if entry[0x00] in (0x00, 0xFF):
@@ -178,8 +193,11 @@ class DSKImage:
             sec[:len(chunk)] = chunk
             self._write_sec(ft, fs, sec)
             tsl_entries.append((ft, fs))
-        vtoc = self._read_sec(_DSK_VTOC_TRACK, _DSK_VTOC_SEC)
-        tsl[0x05] = vtoc[0x06]
+        # TSL bytes 0x05-0x06 = file-relative sector offset of the first
+        # sector in this list.  For the single TSL we emit, that is 0
+        # (matches AppleCommander).
+        tsl[0x05] = 0
+        tsl[0x06] = 0
         for i, (ft, fs) in enumerate(tsl_entries):
             base = 0x0C + i * 2
             tsl[base], tsl[base+1] = ft, fs
@@ -212,6 +230,10 @@ class DSKImage:
                     self._vtoc_free_sec(ft, fs)
                 self._vtoc_free_sec(entry[0x00], entry[0x01])
                 dir_sec = self._read_sec(dt, ds)
+                # DOS 3.3 delete: copy the file's first track byte into the
+                # last byte of the name field (for undelete), then mark the
+                # entry deleted with $FF.  Matches AppleCommander.
+                dir_sec[doff + 0x20] = entry[0x00]
                 dir_sec[doff] = 0xFF
                 self._write_sec(dt, ds, dir_sec)
                 return True
@@ -366,15 +388,16 @@ class POImage:
         hdr[0]     = (_PO_STOR_VOLHDR << 4) | len(name)
         for i, c in enumerate(name):
             hdr[1 + i] = ord(c)
-        hdr[26] = 5          # ProDOS version
-        hdr[28] = 0xC3       # access: read/write/destroy/rename/backup
-        hdr[29] = _PO_ENTRY_SIZE
-        hdr[30] = _PO_ENTRIES_PER
-        hdr[31] = 0; hdr[32] = 0  # file_count = 0
-        hdr[33] = _PO_BITMAP_BLOCK & 0xFF
-        hdr[34] = (_PO_BITMAP_BLOCK >> 8) & 0xFF
-        hdr[35] = total_blocks & 0xFF
-        hdr[36] = (total_blocks >> 8) & 0xFF
+        hdr[28] = 0x00                             # version
+        hdr[29] = 0x00                             # min_version
+        hdr[30] = 0xC3                             # access: read/write/destroy/rename/backup
+        hdr[31] = _PO_ENTRY_SIZE                   # entry_length = 39
+        hdr[32] = _PO_ENTRIES_PER                  # entries_per_block = 13
+        hdr[33] = 0; hdr[34] = 0                   # file_count = 0
+        hdr[35] = _PO_BITMAP_BLOCK & 0xFF          # bit_map_pointer lo
+        hdr[36] = (_PO_BITMAP_BLOCK >> 8) & 0xFF   # bit_map_pointer hi
+        hdr[37] = total_blocks & 0xFF              # total_blocks lo
+        hdr[38] = (total_blocks >> 8) & 0xFF       # total_blocks hi
         key[4:4 + _PO_ENTRY_SIZE] = hdr
         self._write_blk(_PO_VOLDIR_BLOCK, key)
         # Continuation directory blocks
@@ -392,7 +415,9 @@ class POImage:
     def _iter_dir(self):
         blk = _PO_VOLDIR_BLOCK
         while blk:
-            buf      = self._read_blk(blk)
+            buf = self._read_blk(blk)
+            if len(buf) < 4:
+                break
             next_blk = buf[2] | (buf[3] << 8)
             for i in range(_PO_ENTRIES_PER):
                 off = 4 + i * _PO_ENTRY_SIZE
@@ -411,9 +436,9 @@ class POImage:
 
     def _incr_file_count(self, delta: int) -> None:
         hdr   = self._read_volhdr()
-        count = (hdr[31] | (hdr[32] << 8)) + delta
-        hdr[31] = max(0, count) & 0xFF
-        hdr[32] = (max(0, count) >> 8) & 0xFF
+        count = (hdr[33] | (hdr[34] << 8)) + delta
+        hdr[33] = max(0, count) & 0xFF
+        hdr[34] = (max(0, count) >> 8) & 0xFF
         self._write_volhdr(hdr)
 
     # --- public interface ---
@@ -494,7 +519,7 @@ class POImage:
         e[19] = blocks_used & 0xFF;  e[20] = (blocks_used >> 8) & 0xFF
         eof   = len(file_data)
         e[21] = eof & 0xFF;   e[22] = (eof >> 8) & 0xFF;  e[23] = (eof >> 16) & 0xFF
-        e[28] = 5;            e[30] = 0xC3
+        e[28] = 0x00;         e[30] = 0xC3
         e[37] = _PO_VOLDIR_BLOCK & 0xFF
         e[38] = (_PO_VOLDIR_BLOCK >> 8) & 0xFF
         buf = bytearray(self._read_blk(dir_blk))
@@ -590,6 +615,34 @@ def _po_to_dsk(data: bytes) -> bytearray:
             dst = (t * _DSK_SECTORS + _PO_TO_DO[po_s]) * _DSK_SEC_SIZE
             out[dst:dst + _DSK_SEC_SIZE] = data[src:src + _DSK_SEC_SIZE]
     return out
+
+
+class PODOSImage(DSKImage):
+    """DOS 3.3 disk stored in ProDOS sector ordering.
+
+    The file bytes are in ProDOS block order (so .po-aware emulators like AppleWin
+    apply the correct sector interleave and read the DOS 3.3 content correctly).
+    Internally all DSKImage operations work on DOS-ordered data as usual; sector
+    reordering happens only on load and save.
+    """
+
+    @classmethod
+    def create(cls, disk_name: str = 'NEW DISK', volume: int = 254, **kw) -> 'PODOSImage':
+        img = DSKImage.create(disk_name, volume)
+        return cls(img.data)
+
+    @classmethod
+    def load(cls, path: Path) -> 'PODOSImage':
+        raw = path.read_bytes()
+        if len(raw) != _DSK_SIZE:
+            raise ValueError(f'Expected {_DSK_SIZE} bytes for DOS 3.3 image, got {len(raw)}.')
+        # The .po file always stores sectors in ProDOS block order (even for DOS 3.3 content).
+        # Convert PO→DOS for internal DSKImage operations; save() converts DOS→PO back.
+        return cls(_po_to_dsk(raw))
+
+    def save(self, path: Path) -> None:
+        # Convert from DOS ordering (internal) to PO sector ordering (as stored)
+        path.write_bytes(_dsk_to_po(self.data))
 
 
 class DOPOImage(POImage):
@@ -867,6 +920,7 @@ FORMATS = {
     'do':    {'desc': 'Apple DOS-Order Disk Image',             'exts': ['.do'],           'cls': DSKImage},
     'do-po': {'desc': 'Apple DOS-Order image with ProDOS FS',   'exts': [],                'cls': DOPOImage},
     'po':    {'desc': 'Apple ProDOS-Order Disk Image',          'exts': ['.po'],           'cls': POImage},
+    'po-dos': {'desc': 'DOS 3.3 disk in ProDOS sector ordering', 'exts': [],               'cls': PODOSImage},
     'hdv':  {'desc': 'Apple IIgs ProDOS Hard Disk',       'exts': ['.hdv'],        'cls': HDVImage},
     'nib':  {'desc': 'Apple II Nibblized Disk Image',     'exts': ['.nib'],        'cls': NIBImage},
     '2mg':  {'desc': 'Universal Apple II Image (2MG)',    'exts': ['.2mg', '.2img'], 'cls': TMGImage},
@@ -879,16 +933,23 @@ FORMATS = {
 _EXT_MAP = {ext: key for key, info in FORMATS.items() for ext in info['exts']}
 
 
+def _looks_like_po_dos33(data: bytes) -> bool:
+    """True if a PO-sector-ordered file contains a DOS 3.3 filesystem (previously saved by PODOSImage)."""
+    if len(data) != _DSK_SIZE:
+        return False
+    return _looks_like_dos33(_po_to_dsk(data))
+
+
 def _looks_like_dos33(data: bytes) -> bool:
     if len(data) != _DSK_SIZE:
         return False
     off = _dsk_offset(_DSK_VTOC_TRACK, _DSK_VTOC_SEC)
     vtoc = data[off:off + _DSK_SEC_SIZE]
-    if len(vtoc) < 0x28:
+    if len(vtoc) < 0x36:
         return False
     return (vtoc[0x01] == _DSK_DIR_TRACK and
             vtoc[0x03] == 3 and
-            vtoc[0x27] == _DSK_SECTORS)
+            vtoc[0x35] == _DSK_SECTORS)   # sectors/track at 0x35, not 0x27
 
 
 def _looks_like_prodos(data: bytes) -> bool:
@@ -916,13 +977,19 @@ def detect(path: Path, fmt_hint: str = None) -> str:
             return fmt_hint
         raise ValueError(f'Unknown Apple II format: {fmt_hint!r}')
     ext = path.suffix.lower()
-    if ext in ('.dsk', '.do') and path.exists():
+    if ext in ('.dsk', '.do', '.po') and path.exists():
         data = path.read_bytes()
+        # Check DOS 3.3 first: a .po file with DOS 3.3 content (either ordering) needs
+        # PODOSImage so AppleWin's ProDOS sector interleave correctly reconstructs the data.
+        if _looks_like_dos33(data):
+            return 'po-dos' if ext == '.po' else 'dsk'
+        if ext == '.po' and _looks_like_po_dos33(data):
+            return 'po-dos'   # already PO-ordered (saved by a previous PODOSImage.save())
         if _looks_like_dos_prodos(data):
             return 'do-po'   # DOS-sector-ordered image with ProDOS filesystem
         if _looks_like_prodos(data):
-            return 'po'      # ProDOS block-ordered image with .dsk extension
-        return 'dsk'         # genuine DOS 3.3
+            return 'po'      # ProDOS block-ordered image
+        return _EXT_MAP.get(ext, 'dsk')   # unknown content: trust extension
     if ext in _EXT_MAP:
         return _EXT_MAP[ext]
     raise ValueError(f'Cannot detect Apple II format from: {path.name}')
@@ -969,6 +1036,8 @@ def main(argv=None):
     pl = sub.add_parser('list');   pl.add_argument('image')
     pa = sub.add_parser('add');    pa.add_argument('image'); pa.add_argument('file')
     pa.add_argument('--name');     pa.add_argument('--type', default='bin')
+    pa.add_argument('--addr', type=lambda x: int(x, 0), default=0,
+                    help='Load address for DOS 3.3 binary files (e.g. 0x0800)')
     pr = sub.add_parser('remove'); pr.add_argument('image'); pr.add_argument('name')
 
     a = ap.parse_args(argv)
@@ -981,7 +1050,8 @@ def main(argv=None):
             img = load(p, fmt); _print_listing(img.list_files())
         elif a.command == 'add':
             name = a.name or Path(a.file).stem.upper()
-            img = load(p, fmt); img.add_file(Path(a.file).read_bytes(), name, a.type)
+            addr = getattr(a, 'addr', 0)
+            img = load(p, fmt); img.add_file(Path(a.file).read_bytes(), name, a.type, addr)
             img.save(p); print(f'Added "{name}" to {p}')
         elif a.command == 'remove':
             img = load(p, fmt)

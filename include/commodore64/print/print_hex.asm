@@ -54,6 +54,7 @@
 //////////////////////////////////////////////////////////////////
 // print_hex ??
 
+
 print_hex_inline_d:
 .byte 1
 print_hex_inline:
@@ -108,9 +109,9 @@ print_h_digit:
   rts
 
 
-/*
+
 //////////////////////////////////////////////////////////////////
-// print_hex
+// print_hex_poke
 //////////////////////////////////////////////////////////////////
 // POKE 2 character HEX representation of 
 // a byte onto the screen at x,y location
@@ -125,11 +126,11 @@ print_h_digit:
 //////////////////////////////////////////////////////////////////
 
 print_hex_color: .byte 2
-print_hex:
+print_hex_poke:
     sta zp_tmp
     jsr calculate_screen_pos
     lda zp_tmp
-print_hex_no_calc:
+print_hex_poke_no_calc:
     sta zp_tmp
     lsr
     lsr
@@ -155,7 +156,7 @@ print_hex_no_calc:
 
 print_hex_screencode_conversion_table:
 .byte $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$01,$02,$03,$04,$05,$06
-*/
+
 /*
 .macro PrintHex(xpos,ypos) {
 

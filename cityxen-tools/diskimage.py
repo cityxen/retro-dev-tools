@@ -225,6 +225,8 @@ def main() -> None:
     pa.add_argument('--name', help='Filename on disk (default: source stem)')
     pa.add_argument('--type', default='prg',
                     help='File type: prg/seq/usr (D64), bin (others) [default: prg]')
+    pa.add_argument('--addr', type=lambda x: int(x, 0), default=0,
+                    help='Load address for DOS 3.3 binary files (e.g. 0x0800)')
 
     pr = sub.add_parser('remove', help='Remove a file from a disk image')
     pr.add_argument('image', help='Disk image path')
@@ -268,7 +270,7 @@ def main() -> None:
                 sys.exit(f'Source file not found: {src}')
             img = mod.load(img_path, fmt)
             name = args.name or src.stem.upper()
-            img.add_file(src.read_bytes(), name, args.type)
+            img.add_file(src.read_bytes(), name, args.type, getattr(args, 'addr', 0))
             img.save(img_path)
             print(f'Added "{name}" ({src.stat().st_size} bytes) to {img_path}')
 

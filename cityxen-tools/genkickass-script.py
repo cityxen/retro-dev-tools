@@ -38,11 +38,11 @@ if "Linux" in OS_DETECTED:
 ORIG_PATH           = os.getcwd()
 NEW_KICKASS_CONFIG  = "KickAss_AutoGen.cfg"
 SCRIPT_PATH         = os.path.dirname(os.path.realpath(__file__))
-RETRO_DEV_PATH      = SCRIPT_PATH.replace("\\bin-win","").replace("\\bin-linux","").replace("\\bin-pi","")
+RETRO_DEV_PATH      = SCRIPT_PATH.replace("\\bin-win","").replace("\\bin-linux","").replace("\\bin-pi","").replace("\\cityxen-tools","")
 KICKASS_PATH        = RETRO_DEV_PATH+os.path.sep+"dev-tools"+os.path.sep+"commodore64"+os.path.sep+"KickAssembler"
 KICKASS_CONFIG      = KICKASS_PATH+os.path.sep+"KickAss.cfg"
 EMULATOR_PATH       = RETRO_DEV_PATH+os.path.sep
-C64_INCLUDE_PATH    = RETRO_DEV_PATH+os.path.sep+"include"+os.path.sep+"commodore"
+C64_INCLUDE_PATH    = RETRO_DEV_PATH+os.path.sep+"include"+os.path.sep+"commodore64"
 
 VICE_PATH           = "/usr/bin"
 if OS_DETECTED=="WINDOWS":
