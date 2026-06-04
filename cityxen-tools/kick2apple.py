@@ -1,90 +1,58 @@
 #!/usr/bin/env python3
 """
-kick2apple.py — Strip KickAssembler PRG header and generate Apple IIe ProDOS files
+kick2apple.py — Strip the KickAssembler PRG header and build the Whackadoodle
+Apple IIe ProDOS files.
 
-KickAssembler emits a 2-byte load-address prefix (lo, hi) followed by the
-raw binary.  This script:
-  1. Strips the 2-byte header and writes a raw .bin file
-  2. Generates a tokenized Applesoft BASIC STARTUP program that BRUNs the binary
+Direct port of Whackadoodle/appleiie/tools/make_binary.ps1.
 
-Applesoft STARTUP program:
-  10 PRINT CHR$(4)"BRUN <name>"
+Inputs:  prg_files/wad_a2.prg   (KickAss output, first 2 bytes = $00 $60)
+Outputs: prg_files/wad_a2.bin   (raw binary at $6000, no header)
+         prg_files/startup.bin  (tokenized Applesoft BASIC, loads at $0801)
 
-Usage:
-  python kick2apple.py input.prg output.bin
-  python kick2apple.py prg_files/game.prg prg_files/game.bin --brun GAME
-  python kick2apple.py input.prg output.bin --startup prg_files/startup.bin
-  python kick2apple.py input.prg output.bin --no-startup
+Run from anywhere; paths are resolved relative to this script's parent's parent
+directory (mirrors `Set-Location $PSScriptRoot\..` in the original).
 """
 
-import argparse
-import sys
 from pathlib import Path
 
+# The .ps1 did `Set-Location $PSScriptRoot\..` to anchor on the appleiie folder.
+# This port lives in cityxen-tools instead, so it resolves prg_files relative to
+# the current working directory -- run it from Whackadoodle\appleiie\.
+base = Path.cwd()
 
-def make_startup(brun_name: str) -> bytes:
-    # Applesoft tokenized: 10 PRINT CHR$(4)"BRUN <brun_name>"
-    # Loads at $0801. next_ptr = $0801 + line_length
-    # Line: [next_ptr(2)] [line_num(2)] [PRINT] [CHR$(4)] ["] [BRUN ] [name] ["] [EOL]
-    name_bytes = brun_name.upper().encode('ascii')
-    line_len = 2 + 2 + 1 + 4 + 1 + 5 + len(name_bytes) + 1 + 1  # incl. next_ptr field
-    next_ptr = 0x0801 + line_len
-    startup = bytearray()
-    startup += bytes([next_ptr & 0xFF, (next_ptr >> 8) & 0xFF])  # next line ptr
-    startup += bytes([0x0A, 0x00])                                # line number 10
-    startup += bytes([0xBA])                                      # PRINT
-    startup += bytes([0xC7, 0x28, 0x34, 0x29])                   # CHR$(4)
-    startup += bytes([0x22])                                      # "
-    startup += b'BRUN '
-    startup += name_bytes
-    startup += bytes([0x22])                                      # "
-    startup += bytes([0x00])                                      # EOL
-    startup += bytes([0x00, 0x00])                                # end of program
-    return bytes(startup)
+# --- strip header ---
+prg_path = base / "prg_files" / "wad_a2.prg"
+prg = prg_path.read_bytes()
+if prg[0] != 0x00 or prg[1] != 0x60:
+    print(f"WARNING: Unexpected header bytes {prg[0]:02X} {prg[1]:02X} -- stripping anyway")
+bin_data = prg[2:]
+(base / "prg_files" / "wad_a2.bin").write_bytes(bin_data)
+print(f"wad_a2.bin: {len(bin_data)} bytes at 0x6000")
 
-
-def main() -> None:
-    ap = argparse.ArgumentParser(
-        description='Strip KickAssembler PRG header and generate Apple IIe ProDOS files.',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=__doc__,
-    )
-    ap.add_argument('input',  help='Input PRG file (KickAssembler output with 2-byte load-address header)')
-    ap.add_argument('output', help='Output raw binary .bin file')
-    ap.add_argument('--brun', default='',
-                    help='Filename for the BRUN command in STARTUP (default: stem of output file, uppercased)')
-    ap.add_argument('--startup', default='',
-                    help='Path for the generated STARTUP binary (default: startup.bin alongside output)')
-    ap.add_argument('--no-startup', action='store_true',
-                    help='Skip generating the STARTUP binary')
-    args = ap.parse_args()
-
-    in_path  = Path(args.input)
-    out_path = Path(args.output)
-
-    if not in_path.exists():
-        sys.exit(f'ERROR: {in_path} not found. Did the assembler step succeed?')
-
-    prg = in_path.read_bytes()
-    if len(prg) < 3:
-        sys.exit(f'ERROR: {in_path} is too small to be a valid PRG.')
-
-    load_lo, load_hi = prg[0], prg[1]
-    load_addr = load_hi * 256 + load_lo
-    if load_lo != 0x00 or load_hi != 0x08:
-        print(f'  WARNING: unexpected load address ${load_addr:04X} (expected $0800) -- stripping anyway')
-
-    data = prg[2:]
-    out_path.write_bytes(data)
-    print(f'  BIN   : {out_path} ({len(data)} bytes at ${load_addr:04X})')
-
-    if not args.no_startup:
-        brun_name = args.brun or out_path.stem.upper()
-        startup_path = Path(args.startup) if args.startup else out_path.parent / 'startup.bin'
-        startup = make_startup(brun_name)
-        startup_path.write_bytes(startup)
-        print(f'  STARTUP: {startup_path} ({len(startup)} bytes) — BRUN {brun_name}')
-
-
-if __name__ == '__main__':
-    main()
+# --- generate STARTUP Applesoft tokenized binary ---
+#
+# Program:  10 PRINT CHR$(4)"BRUN WAD_A2"
+#
+# Applesoft tokenized format (program loads at $0801 in memory):
+#   [next_ptr lo/hi] [line_num lo/hi] [tokens...] [00=EOL]
+#   [00 00] = end of program
+#
+# Tokens:
+#   $BA = PRINT   $C7 = CHR$   $28 = (   $34 = 4   $29 = )
+#   $22 = "       literal "BRUN WAD_A2"   $22 = "   $00 = EOL
+#
+# Record = 2+2+19 = 23 bytes.  Starts at $0801, so next ptr = $0818.
+startup = bytes([
+    0x18, 0x08,                                     # next line ptr ($0818)
+    0x0A, 0x00,                                     # line number 10
+    0xBA,                                           # PRINT
+    0xC7, 0x28, 0x34, 0x29,                         # CHR$(4)
+    0x22,                                           # "
+    0x42, 0x52, 0x55, 0x4E, 0x20,                   # BRUN (space)
+    0x57, 0x41, 0x44, 0x5F, 0x41, 0x32,             # WAD_A2
+    0x22,                                           # "
+    0x00,                                           # EOL
+    0x00, 0x00,                                     # end of program
+])
+(base / "prg_files" / "startup.bin").write_bytes(startup)
+print(f"startup.bin: {len(startup)} bytes (Applesoft line 10)")
