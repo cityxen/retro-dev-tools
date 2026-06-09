@@ -459,7 +459,7 @@ class POImage:
             files.append((ftype, name, blocks))
         return files
 
-    def add_file(self, file_data: bytes, prodos_name: str, file_type: str = 'bin') -> None:
+    def add_file(self, file_data: bytes, prodos_name: str, file_type: str = 'bin', addr: int = 0) -> None:
         name = prodos_name.upper()[:15]
         if not name:
             raise ValueError('ProDOS name cannot be empty.')
@@ -520,6 +520,7 @@ class POImage:
         eof   = len(file_data)
         e[21] = eof & 0xFF;   e[22] = (eof >> 8) & 0xFF;  e[23] = (eof >> 16) & 0xFF
         e[28] = 0x00;         e[30] = 0xC3
+        e[31] = addr & 0xFF;  e[32] = (addr >> 8) & 0xFF   # aux_type: BIN/SYS load addr, BAS load addr
         e[37] = _PO_VOLDIR_BLOCK & 0xFF
         e[38] = (_PO_VOLDIR_BLOCK >> 8) & 0xFF
         buf = bytearray(self._read_blk(dir_blk))
@@ -875,7 +876,7 @@ class TMGImage:
         path.write_bytes(bytes(hdr) + inner_data)
 
     def list_files(self) -> list:     return self._inner.list_files()
-    def add_file(self, d, n, t='bin'): self._inner.add_file(d, n, t)
+    def add_file(self, d, n, t='bin', addr=0): self._inner.add_file(d, n, t, addr)
     def remove_file(self, n) -> bool:  return self._inner.remove_file(n)
 
 

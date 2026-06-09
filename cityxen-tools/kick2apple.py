@@ -1,58 +1,119 @@
 #!/usr/bin/env python3
 """
-kick2apple.py — Strip the KickAssembler PRG header and build the Whackadoodle
-Apple IIe ProDOS files.
+kick2apple.py — Strip the KickAssembler PRG load-address header to produce a
+raw Apple II binary, and optionally generate an Applesoft STARTUP loader.
 
-Direct port of Whackadoodle/appleiie/tools/make_binary.ps1.
+A KickAssembler PRG begins with a 2-byte little-endian load address followed by
+the program bytes.  Apple II raw binaries have no such header, so this tool
+copies everything after the first two bytes to the output file.
 
-Inputs:  prg_files/wad_a2.prg   (KickAss output, first 2 bytes = $00 $60)
-Outputs: prg_files/wad_a2.bin   (raw binary at $6000, no header)
-         prg_files/startup.bin  (tokenized Applesoft BASIC, loads at $0801)
+Usage:
+    kick2apple.py SOURCE.prg OUTPUT.bin [--addr ADDR]
+                  [--startup STARTUP.bin] [--brun NAME]
 
-Run from anywhere; paths are resolved relative to this script's parent's parent
-directory (mirrors `Set-Location $PSScriptRoot\..` in the original).
+  SOURCE.prg          KickAssembler PRG (first 2 bytes = load address lo/hi)
+  OUTPUT.bin          raw binary to write (header stripped)
+  --addr ADDR         expected load address, e.g. 0x6000 or 24576.
+                      Default: read from the PRG header.  When given, a
+                      mismatch with the header is reported as a warning.
+  --startup PATH      also write an Applesoft tokenized loader to PATH that
+                      runs:  10 PRINT CHR$(4)"BRUN <NAME>"
+  --brun NAME         BRUN target name for the STARTUP loader.
+                      Default: OUTPUT file name (stem), uppercased.
 """
 
+import argparse
+import sys
 from pathlib import Path
 
-# The .ps1 did `Set-Location $PSScriptRoot\..` to anchor on the appleiie folder.
-# This port lives in cityxen-tools instead, so it resolves prg_files relative to
-# the current working directory -- run it from Whackadoodle\appleiie\.
-base = Path.cwd()
 
-# --- strip header ---
-prg_path = base / "prg_files" / "wad_a2.prg"
-prg = prg_path.read_bytes()
-if prg[0] != 0x00 or prg[1] != 0x60:
-    print(f"WARNING: Unexpected header bytes {prg[0]:02X} {prg[1]:02X} -- stripping anyway")
-bin_data = prg[2:]
-(base / "prg_files" / "wad_a2.bin").write_bytes(bin_data)
-print(f"wad_a2.bin: {len(bin_data)} bytes at 0x6000")
+def make_startup(name):
+    """Tokenized Applesoft program:
 
-# --- generate STARTUP Applesoft tokenized binary ---
-#
-# Program:  10 PRINT CHR$(4)"BRUN WAD_A2"
-#
-# Applesoft tokenized format (program loads at $0801 in memory):
-#   [next_ptr lo/hi] [line_num lo/hi] [tokens...] [00=EOL]
-#   [00 00] = end of program
-#
-# Tokens:
-#   $BA = PRINT   $C7 = CHR$   $28 = (   $34 = 4   $29 = )
-#   $22 = "       literal "BRUN WAD_A2"   $22 = "   $00 = EOL
-#
-# Record = 2+2+19 = 23 bytes.  Starts at $0801, so next ptr = $0818.
-startup = bytes([
-    0x18, 0x08,                                     # next line ptr ($0818)
-    0x0A, 0x00,                                     # line number 10
-    0xBA,                                           # PRINT
-    0xC7, 0x28, 0x34, 0x29,                         # CHR$(4)
-    0x22,                                           # "
-    0x42, 0x52, 0x55, 0x4E, 0x20,                   # BRUN (space)
-    0x57, 0x41, 0x44, 0x5F, 0x41, 0x32,             # WAD_A2
-    0x22,                                           # "
-    0x00,                                           # EOL
-    0x00, 0x00,                                     # end of program
-])
-(base / "prg_files" / "startup.bin").write_bytes(startup)
-print(f"startup.bin: {len(startup)} bytes (Applesoft line 10)")
+        5  HOME : PRINT "LOADING <name>"
+        10 PRINT CHR$(4)"BRUN <name>"
+
+    Loads at $0801.  Each stored line is:
+      [link lo/hi][line# lo/hi][tokens...][00 EOL]  then [00 00] end-of-program.
+    The link points to the next line's link field.  DOS commands are issued as a
+    printed string (CHR$(4) then "BRUN ..."), so the quoted text is literal, not
+    tokens.
+    """
+    # (line number, token bytes excluding the trailing EOL)
+    lines = [
+        (5,
+            bytes([0x97, 0x3A, 0xBA, 0x22])             # HOME : PRINT "
+            + ("LOADING " + name).encode("ascii")
+            + bytes([0x22])),                           # "
+        (10,
+            bytes([0xBA, 0xE7, 0x28, 0x34, 0x29, 0x22])  # PRINT CHR$(4)"
+            + ("BRUN " + name).encode("ascii")
+            + bytes([0x22])),                            # "
+    ]
+
+    out = bytearray()
+    addr = 0x0801
+    for num, tokens in lines:
+        body = bytes([num & 0xFF, num >> 8]) + tokens + bytes([0x00])  # line# + tokens + EOL
+        link = addr + 2 + len(body)                                    # next line's link field
+        out += bytes([link & 0xFF, link >> 8]) + body
+        addr = link
+    out += bytes([0x00, 0x00])  # end of program
+    return bytes(out)
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        description="Strip a KickAssembler PRG header to a raw Apple II binary.",
+    )
+    ap.add_argument("source", help="KickAssembler PRG input")
+    ap.add_argument("output", help="raw binary output (header stripped)")
+    ap.add_argument(
+        "--addr",
+        type=lambda s: int(s, 0),
+        default=None,
+        help="expected load address (e.g. 0x6000); default: read from PRG header",
+    )
+    ap.add_argument(
+        "--startup",
+        metavar="PATH",
+        default=None,
+        help="also write an Applesoft STARTUP loader to PATH",
+    )
+    ap.add_argument(
+        "--brun",
+        metavar="NAME",
+        default=None,
+        help="BRUN target name for --startup (default: output stem, uppercased)",
+    )
+    args = ap.parse_args()
+
+    src = Path(args.source)
+    out = Path(args.output)
+
+    prg = src.read_bytes()
+    if len(prg) < 2:
+        sys.exit(f"ERROR: {src} is too small to contain a PRG header")
+
+    header_addr = prg[0] | (prg[1] << 8)
+    if args.addr is not None and args.addr != header_addr:
+        print(
+            f"WARNING: header load address ${header_addr:04X} != "
+            f"expected ${args.addr:04X} -- stripping anyway"
+        )
+    load_addr = args.addr if args.addr is not None else header_addr
+
+    bin_data = prg[2:]
+    out.write_bytes(bin_data)
+    print(f"{out.name}: {len(bin_data)} bytes at ${load_addr:04X}")
+
+    if args.startup is not None:
+        name = args.brun if args.brun is not None else out.stem.upper()
+        startup_path = Path(args.startup)
+        startup = make_startup(name)
+        startup_path.write_bytes(startup)
+        print(f"{startup_path.name}: {len(startup)} bytes (Applesoft: BRUN {name})")
+
+
+if __name__ == "__main__":
+    main()
