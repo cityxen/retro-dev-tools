@@ -18,4 +18,7 @@
 #import "print/print_dec.asm"
 #import "print/print_truefalse.asm"
 #import "print/print_yesno.asm"
+#import "print/u_calculate_screen_pos.asm"
+#import "print/u_calculate_color_pos.asm"
+
 

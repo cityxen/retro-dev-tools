@@ -57,7 +57,7 @@
 .const zp_ptr_2_lo          = $64
 .const zp_ptr_2_hi          = $65
 .const zp_temp              = $57
-.const zp_temp2             = $56
+.const zp_temp2             = $57
 .const zp_temp3             = $58
 .const JOYPORT_TIMER        = $05
 

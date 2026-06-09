@@ -55,13 +55,23 @@ timer_fired:  .byte  0,   0,   0,  0
 
 //////////////////////////////////////////////////////////////////
 // wait_vbl
-// Spins until RTCLOK+2 increments (once per VBL, ~60Hz NTSC).
-// Preserves X, Y.  Trashes A.
+// Frame sync via ANTIC VCOUNT ($D40B) = scan line / 2.  VCOUNT is
+// >= 124 during the vertical blank on NTSC.  We wait for one full
+// out-of-then-into vblank transition = exactly one frame.
+//
+// This polls the hardware directly, so it does NOT depend on the OS
+// VBI or RTCLOK being updated.  (The old RTCLOK+2 poll would either
+// run at 60Hz or, if the deferred VBI was inactive, fail to pace the
+// loop at all.)  Preserves X, Y.  Trashes A.
 wait_vbl:
-    lda RTCLOK2       // read current frame counter
-wv_loop:
-    cmp RTCLOK2       // wait until it changes
-    beq wv_loop
+wv_out:
+    lda $D40B         // VCOUNT
+    cmp #124
+    bcs wv_out        // still in vblank -> wait until below
+wv_in:
+    lda $D40B         // VCOUNT
+    cmp #124
+    bcc wv_in         // wait until >= 124 -> entered vblank (one frame elapsed)
     rts
 
 //////////////////////////////////////////////////////////////////
